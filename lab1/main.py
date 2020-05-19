@@ -1,12 +1,27 @@
 import argparse
 from cv2 import cv2 as cv
 import matplotlib.pyplot as plt
+import numpy as np
+from scipy import ndimage
 
 def main(image):
     img = cv.imread(image)
-    # cv.imshow('Image', img)
-    # imgToGray = cv.cvtColor(img, cv.COLOR_BGR2GRAY)
-    plt.imshow(img, cmap='gray')
+    imgToGray = cv.cvtColor(img, cv.COLOR_BGR2GRAY)
+    imgDst = cv.fastNlMeansDenoising(imgToGray)
+    imgBlured = cv.GaussianBlur(imgDst, (5, 5), 1)
+    
+    # Laplacian filter
+    laplacian = cv.Laplacian(imgBlured, cv.CV_64F)
+
+    # Sobel filter
+    grad_x = cv.Sobel(imgBlured, cv.CV_64F, 1, 0, ksize=3)
+    grad_y = cv.Sobel(imgBlured, cv.CV_64F, 0, 1, ksize=3)
+    abs_grad_x = cv.convertScaleAbs(grad_x)
+    abs_grad_y = cv.convertScaleAbs(grad_y)
+    grad = cv.addWeighted(abs_grad_x, 0.5, abs_grad_y, 0.5, gamma=0)
+
+    plt.subplot(211), plt.imshow(laplacian, cmap='gray')
+    plt.subplot(212), plt.imshow(grad, cmap='gray')
     plt.show()
 
 if __name__ == "__main__":
