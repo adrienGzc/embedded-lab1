@@ -20,8 +20,9 @@ def main(image):
     abs_grad_y = cv.convertScaleAbs(grad_y)
     grad = cv.addWeighted(abs_grad_x, 0.5, abs_grad_y, 0.5, gamma=0)
 
-    plt.subplot(211), plt.imshow(laplacian, cmap='gray')
-    plt.subplot(212), plt.imshow(grad, cmap='gray')
+    canny = cv.Canny(imgBlured,100,200)
+    plt.subplot(121), plt.imshow(canny, cmap='gray')
+    plt.subplot(122), plt.imshow(grad, cmap='gray')
     plt.show()
 
 if __name__ == "__main__":
