@@ -10,9 +10,9 @@ def nonMaximumSupression(image, angle):
     # Create new image based on the shape of the input image.
     newImage = np.zeros((y, x))
 
-    # Loop through Y abscisse. 
+    # Loop through Y abscisse. -1 otherwise i'm out of bounce.
     for indexY in range(0, y - 1):
-        # Loop through X abscisse.
+        # Loop through X abscisse. -1 otherwise i'm out of bounce.
         for indexX in range(0, x - 1):
             # Horizontal 0
             if (0 <= angle[indexY, indexX] < 22.5) or \
@@ -41,13 +41,17 @@ def nonMaximumSupression(image, angle):
                 newImage[indexY, indexX] = 0
     return newImage
 
+# Use Sobel filter from Opencv library.
 def sobelFilter(image):
+    # Use Sobel filter on abscisse X.
     filterX = cv.Sobel(image, cv.CV_64F, 1, 0, ksize=3)
     absoluteX = cv.convertScaleAbs(filterX)
 
+    # Use Sobel filter on abscisse Y.
     filterY = cv.Sobel(image, cv.CV_64F, 0, 1, ksize=3)
     absoluteY = cv.convertScaleAbs(filterY)
 
+    # Converge the output filter.
     filteredImage = np.hypot(absoluteX, absoluteY)
     filteredImage = filteredImage / filteredImage.max() * 255
     angle = np.rad2deg(np.arctan2(filterY, filterX))
