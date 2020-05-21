@@ -98,34 +98,53 @@ def hysteresisThresholding(image, weak=10, strong=70):
     # Return the result after hysterisis thresholding.
     return finalImage
 
+def show_images(images, cols = 1, titles = None):
+    assert((titles is None)or (len(images) == len(titles)))
+    n_images = len(images)
+    if titles is None: titles = ['Image %d' % i for i in range(1, n_images + 1)]
+
+    fig = plt.figure(frameon=False)
+    for n, (image, _title) in enumerate(zip(images, titles)):
+        _plot = fig.add_subplot(cols, np.ceil(n_images / float(cols)), n + 1)
+        plt.imshow(image, cmap='gray')
+        ax = plt.gca()
+        ax.axes.xaxis.set_visible(False)
+        ax.axes.yaxis.set_visible(False)
+    fig.set_size_inches(np.array(fig.get_size_inches()) * n_images)
+    plt.show()
+
 def main(image):
+    images = list()
+
     # Read the image using Opencv library.
     img = cv.imread(image)
     
     # Conver the image in black and night with a grayscale.
     imgToGray = cv.cvtColor(img, cv.COLOR_BGR2GRAY)
+    images.append(imgToGray)
     
     # Denoise the image from potentiel noise.
     imgDst = cv.fastNlMeansDenoising(imgToGray)
     
     # Blur the image using a Gaussian filter of 5 x 5.
     imgBlured = cv.GaussianBlur(imgDst, (5, 5), 0)
+    images.append(imgBlured)
     
-    # Filter the imageto get the edges.
+    # Filter the image to get the edges.
     imgSobel, angle = sobelFilter(imgBlured)
     
     # Thin the edges with a nms filter.
     imgNMS = nonMaximumSupression(imgSobel, angle)
+    images.append(imgNMS)
 
     # Use a hysteris threshold to transform weak pixel into strong one if needed.
     # tmp, weak, strong = threshold(imgNMS)
     # final = hysteresis(tmp, weak, strong)
     final = hysteresisThresholding(imgNMS)
-    
-    # Display the image at the beginning and after edge detection.
-    plt.subplot(121), plt.imshow(imgToGray, cmap='gray')
-    plt.subplot(122), plt.imshow(final, cmap='gray')
-    plt.show()
+    images.append(final)
+
+    # Display the image transition.
+    show_images(images)
 
 if __name__ == "__main__":
     args = argparse.ArgumentParser()
