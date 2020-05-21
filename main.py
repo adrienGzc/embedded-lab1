@@ -4,43 +4,6 @@ import matplotlib.pyplot as plt
 import numpy as np
 from scipy import ndimage
 
-def nonMaximumSupression(image, angle):
-    # Get image shape.
-    y, x = image.shape
-    # Create new image based on the shape of the input image.
-    newImage = np.zeros((y, x))
-
-    # Loop through Y abscisse. -1 otherwise i'm out of bounce.
-    for indexY in range(0, y - 1):
-        # Loop through X abscisse. -1 otherwise i'm out of bounce.
-        for indexX in range(0, x - 1):
-            # Horizontal 0
-            if (0 <= angle[indexY, indexX] < 22.5) or \
-            (157.5 <= angle[indexY, indexX] <= 180) or \
-            (-22.5 <= angle[indexY, indexX] < 0) or \
-            (-180 <= angle[indexY, indexX] < -157.5):
-                b = image[indexY, indexX + 1]
-                c = image[indexY, indexX - 1]
-            # Diagonal 45
-            elif (22.5 <= angle[indexY, indexX] < 67.5) or (-157.5 <= angle[indexY, indexX] < -112.5):
-                b = image[indexY + 1, indexX + 1]
-                c = image[indexY - 1, indexX - 1]
-            # Vertical 90
-            elif (67.5 <= angle[indexY, indexX] < 112.5) or (-112.5 <= angle[indexY, indexX] < -67.5):
-                b = image[indexY + 1, indexX]
-                c = image[indexY - 1, indexX]
-            # Diagonal 135
-            elif (112.5 <= angle[indexY, indexX] < 157.5) or (-67.5 <= angle[indexY, indexX] < -22.5):
-                b = image[indexY + 1, indexX - 1]
-                c = image[indexY - 1, indexX + 1]           
-                
-            # Non-max Suppression
-            if (image[indexY, indexX] >= b) and (image[indexY, indexX] >= c):
-                newImage[indexY, indexX] = image[indexY, indexX]
-            else:
-                newImage[indexY, indexX] = 0
-    return newImage
-
 # Use Sobel filter from Opencv library.
 def sobelFilter(image):
     # Use Sobel filter on abscisse X.
@@ -57,6 +20,48 @@ def sobelFilter(image):
     angle = np.rad2deg(np.arctan2(filterY, filterX))
 
     return (filteredImage, angle)
+
+# Non max supression to reduce the thickness of the edges.
+def nonMaximumSupression(image, angle):
+    # Get image shape.
+    y, x = image.shape
+    # Create new image based on the shape of the input image.
+    newImage = np.zeros((y, x))
+
+    # Loop through Y abscisse. -1 otherwise i'm out of bounce.
+    for indexY in range(0, y - 1):
+        # Loop through X abscisse. -1 otherwise i'm out of bounce.
+        for indexX in range(0, x - 1):
+            point1 = None
+            point2 = None
+
+            # Check on horizontal direction.
+            if (0 <= angle[indexY, indexX] < 22.5) or \
+            (157.5 <= angle[indexY, indexX] <= 180) or \
+            (-22.5 <= angle[indexY, indexX] < 0) or \
+            (-180 <= angle[indexY, indexX] < -157.5):
+                point1 = image[indexY, indexX + 1]
+                point2 = image[indexY, indexX - 1]
+            # CHeck on angle 45°.
+            elif (22.5 <= angle[indexY, indexX] < 67.5) or (-157.5 <= angle[indexY, indexX] < -112.5):
+                point1 = image[indexY + 1, indexX + 1]
+                point2 = image[indexY - 1, indexX - 1]
+            # Check on angle 90°
+            elif (67.5 <= angle[indexY, indexX] < 112.5) or (-112.5 <= angle[indexY, indexX] < -67.5):
+                point1 = image[indexY + 1, indexX]
+                point2 = image[indexY - 1, indexX]
+            # Check on angle 135°
+            elif (112.5 <= angle[indexY, indexX] < 157.5) or (-67.5 <= angle[indexY, indexX] < -22.5):
+                point1 = image[indexY + 1, indexX - 1]
+                point2 = image[indexY - 1, indexX + 1]           
+            
+            # If image pixel has a higher intensity than point1 and point2, then we keep the pixel as a edge.
+            if (image[indexY, indexX] >= point1) and (image[indexY, indexX] >= point2):
+                newImage[indexY, indexX] = image[indexY, indexX]
+            # In the other way we remove the pixel. Not really remove but set to black.
+            else:
+                newImage[indexY, indexX] = 0
+    return newImage
 
 def hysteresisThresholding(image, weak=10, strong=70):
     # Get image shape.
@@ -142,6 +147,15 @@ def main(image):
     # final = hysteresis(tmp, weak, strong)
     final = hysteresisThresholding(imgNMS)
     images.append(final)
+
+    # Real Canny from Opencv library. Added in the final images to compare result.
+    # Use auto Canny to detect best weak and strong threshold, based on this blog:
+    # https://www.pyimagesearch.com/2015/04/06/zero-parameter-automatic-canny-edge-detection-with-python-and-opencv/
+    median = np.median(imgToGray)
+    lower = int(max(0, (1.0 - 0.33) * median))
+    upper = int(min(255, (1.0 + 0.33) * median))
+    imgCanny = cv.Canny(imgToGray, lower, upper)
+    images.append(imgCanny)
 
     # Display the image transition.
     show_images(images)
